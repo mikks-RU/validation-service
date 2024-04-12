@@ -15,8 +15,6 @@ import ru.sberinsur.model.SchemaUpdateResult;
 
 import javax.annotation.PostConstruct;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -42,10 +40,10 @@ public class SchemaTableLoader {
 
     @PostConstruct
     public void init() {
-        updateSchemas();
+        updateSchemas(true);
     }
 
-    public List<SchemaUpdateResult> updateSchemas() {
+    public List<SchemaUpdateResult> updateSchemas(Boolean isInit) {
         List<SchemaUpdateResult> updatedSchemas = new ArrayList<>();
         List<SchemaTable> schemaTables = schemaTableRepository.findAll();
         for (SchemaTable schemaTable : schemaTables) {
@@ -54,15 +52,18 @@ public class SchemaTableLoader {
             try {
                 byte[] fileBytes = Files.readAllBytes(path);
                 String currentHash = DigestUtils.sha256Hex(fileBytes);
-//                if (!currentHash.equals(schemaTable.getHash())) {
+                boolean isHashChanged = !currentHash.equals(schemaTable.getHash());
+                if (isInit || isHashChanged) {
                     JSONTokener tokener = new JSONTokener(new String(fileBytes));
                     JSONObject schemaJson = new JSONObject(tokener);
                     Schema schema = SchemaLoader.load(schemaJson);
                     schemaMap.put(schemaTable.getService(), schema);
-                    schemaTable.setHash(currentHash);
-                    schemaTableRepository.save(schemaTable);
+                    if (isHashChanged) {
+                        schemaTable.setHash(currentHash);
+                        schemaTableRepository.save(schemaTable);
+                    }
                     updatedSchemas.add(new SchemaUpdateResult(schemaTable.getService(), schemaTable.getPath()));
-//                }
+                }
             } catch (Exception e) {
                 log.error("Ошибка загрузки или обновления схемы: {}", schemaPath, e);
             }

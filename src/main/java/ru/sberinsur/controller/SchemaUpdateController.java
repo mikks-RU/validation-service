@@ -18,7 +18,7 @@ public class SchemaUpdateController {
 
     @GetMapping
     public ResponseEntity<List<SchemaUpdateResult>> updateSchemas() {
-        List<SchemaUpdateResult> updatedSchemas = schemaLoader.updateSchemas();
+        List<SchemaUpdateResult> updatedSchemas = schemaLoader.updateSchemas(false);
         return ResponseEntity.ok(updatedSchemas);
     }
 }
