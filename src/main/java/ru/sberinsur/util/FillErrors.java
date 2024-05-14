@@ -1,5 +1,4 @@
 package ru.sberinsur.util;
-
 import lombok.extern.slf4j.Slf4j;
 import org.everit.json.schema.ValidationException;
 import org.springframework.stereotype.Component;
@@ -17,13 +16,12 @@ public class FillErrors {
 
     private static final Pattern UNIQUE_ERROR_PATTERN = Pattern.compile("\\[([a-zA-Z]+)\\]");
 
-    public static ValidationResult handleValidationException(ValidationException ex) {
-        Set<String> errors = new HashSet<>();
-        errors.addAll(ex.getAllMessages().stream()
-                .map(FillErrors::formatErrorMessage)
-                .collect(Collectors.toSet()));
+    public ValidationResult handleValidationException(ValidationException ex) {
+        Set<String> errors = ex.getAllMessages().stream()
+                .map(this::formatErrorMessage)
+                .collect(Collectors.toSet());
 
-        if (ex.getCausingExceptions() != null && !ex.getCausingExceptions().isEmpty()) {
+        if (!ex.getCausingExceptions().isEmpty()) {
             ex.getCausingExceptions().forEach(failure ->
                     errors.add(formatErrorMessage(failure.getMessage())));
         }
@@ -36,11 +34,11 @@ public class FillErrors {
         return new ValidationResult(fullError, briefError);
     }
 
-    private static String formatErrorMessage(String message) {
+    private String formatErrorMessage(String message) {
         return message.replaceAll("#: ", "").replaceAll(" #", "").replaceAll("\\s+", " ");
     }
 
-    private static Set<String> getUniqueErrors(String validationResult) {
+    private Set<String> getUniqueErrors(String validationResult) {
         Set<String> uniqueErrors = new HashSet<>();
         Matcher matcher = UNIQUE_ERROR_PATTERN.matcher(validationResult);
 

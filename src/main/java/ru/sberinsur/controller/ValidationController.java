@@ -19,6 +19,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ValidationController {
+
     private final SchemaTableLoader schemaLoader;
     private final FillErrors fillErrors;
 
@@ -29,20 +30,24 @@ public class ValidationController {
             @RequestBody String json) {
         log.info("Received headers: {}", headers);
         log.info("Received JSON: {}", json);
+
         Schema schema = schemaLoader.getSchema(service);
         if (schema == null) {
-            return ResponseEntity.badRequest().body(new ValidationResult("Схема не найдена", ""));
+            return ResponseEntity.badRequest().body(new ValidationResult("Schema not found", ""));
         }
 
+        return validateJsonAgainstSchema(json, schema);
+    }
+
+    private ResponseEntity<ValidationResult> validateJsonAgainstSchema(String json, Schema schema) {
         try {
             JSONObject jsonObject = new JSONObject(json);
             schema.validate(jsonObject);
-            return ResponseEntity.ok(new ValidationResult("JSON успешно прошел валидацию", ""));
+            return ResponseEntity.ok(new ValidationResult("JSON successfully validated", ""));
         } catch (JSONException e) {
-            return ResponseEntity.badRequest().body(new ValidationResult("Некорректный JSON:" + e.getMessage(), ""));
+            return ResponseEntity.badRequest().body(new ValidationResult("Invalid JSON: " + e.getMessage(), ""));
         } catch (ValidationException e) {
             return ResponseEntity.badRequest().body(fillErrors.handleValidationException(e));
         }
     }
-
 }

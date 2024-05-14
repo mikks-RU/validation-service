@@ -6,9 +6,8 @@ import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import ru.sberinsur.data.entity.SchemaTable;
 import ru.sberinsur.data.repository.SchemaTableRepository;
 import ru.sberinsur.model.SchemaUpdateResult;
@@ -18,12 +17,9 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
-@Component
+@Service
 @Slf4j
 public class SchemaTableLoader {
 
@@ -33,7 +29,6 @@ public class SchemaTableLoader {
     @Value("${schemas.dir}")
     private String schemasDir;
 
-    @Autowired
     public SchemaTableLoader(SchemaTableRepository schemaTableRepository) {
         this.schemaTableRepository = schemaTableRepository;
     }
@@ -46,26 +41,29 @@ public class SchemaTableLoader {
     public List<SchemaUpdateResult> updateSchemas(Boolean isInit) {
         List<SchemaUpdateResult> updatedSchemas = new ArrayList<>();
         List<SchemaTable> schemaTables = schemaTableRepository.findAll();
+
         for (SchemaTable schemaTable : schemaTables) {
             String schemaPath = schemasDir + File.separator + schemaTable.getPath();
-            Path path = Paths.get(schemaPath);
             try {
+                Path path = Paths.get(schemaPath);
                 byte[] fileBytes = Files.readAllBytes(path);
                 String currentHash = DigestUtils.sha256Hex(fileBytes);
-                boolean isHashChanged = !currentHash.equals(schemaTable.getHash());
-                if (isInit || isHashChanged) {
+
+                if (isInit || !currentHash.equals(schemaTable.getHash())) {
                     JSONTokener tokener = new JSONTokener(new String(fileBytes));
                     JSONObject schemaJson = new JSONObject(tokener);
                     Schema schema = SchemaLoader.load(schemaJson);
                     schemaMap.put(schemaTable.getService(), schema);
-                    if (isHashChanged) {
+
+                    if (!currentHash.equals(schemaTable.getHash())) {
                         schemaTable.setHash(currentHash);
                         schemaTableRepository.save(schemaTable);
                     }
+
                     updatedSchemas.add(new SchemaUpdateResult(schemaTable.getService(), schemaTable.getPath()));
                 }
             } catch (Exception e) {
-                log.error("Ошибка загрузки или обновления схемы: {}", schemaPath, e);
+                log.error("Error loading or updating schema: {}", schemaPath, e);
             }
         }
         return updatedSchemas;
