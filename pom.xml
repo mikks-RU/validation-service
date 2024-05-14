@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>ru.sberinsur</groupId>
-    <artifactId>validation</artifactId>
+    <artifactId>ValidationSvc</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>validation</name>
     <description>Demo project for Spring Boot</description>
@@ -84,6 +84,8 @@
                 </configuration>
             </plugin>
         </plugins>
+
+        <finalName>${project.artifactId}</finalName>
     </build>
 
 </project>
